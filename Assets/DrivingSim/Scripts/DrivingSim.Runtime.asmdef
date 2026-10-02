@@ -1,0 +1,8 @@
+{
+  "name": "DrivingSim.Runtime",
+  "rootNamespace": "DrivingSim",
+  "references": [
+    "Unity.ugui"
+  ],
+  "autoReferenced": true
+}

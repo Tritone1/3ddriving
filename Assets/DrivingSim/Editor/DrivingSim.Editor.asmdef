@@ -1,0 +1,10 @@
+{
+  "name": "DrivingSim.Editor",
+  "rootNamespace": "DrivingSim.Editor",
+  "references": [
+    "DrivingSim.Runtime",
+    "Unity.ugui"
+  ],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}

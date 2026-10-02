@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31436f216460dac4590836d9130da453, type: 3}
+  m_Name: GameDatabase
+  m_EditorClassIdentifier: 
+  cars:
+  - {fileID: 11400000, guid: 2d81a6f5a6e1a0144bdd830380c8c090, type: 2}
+  - {fileID: 11400000, guid: 0e639ff9f2e037740bd836f8bba8f04c, type: 2}
+  - {fileID: 11400000, guid: f1da5a62119befe4e8e923a45caaea6c, type: 2}
+  missions:
+  - {fileID: 11400000, guid: 08c98c16003e65a4ba133595ad1ba1e6, type: 2}
+  - {fileID: 11400000, guid: 3316fce3d5ef6c4419f1c157a41ffb0b, type: 2}
+  - {fileID: 11400000, guid: 38f0fa48dae828849b7efbda14a846aa, type: 2}
+  upgrades:
+  - {fileID: 11400000, guid: d14d170372993f94fb6db1b12e00adf4, type: 2}
+  - {fileID: 11400000, guid: b32d01f6cca95be47b0823e08eceef92, type: 2}
+  - {fileID: 11400000, guid: 5c71e37583f52eb4baf4b3ff477045d6, type: 2}
+  - {fileID: 11400000, guid: 011a9a385da8cea4293e3beaf4d45ab7, type: 2}
+  - {fileID: 11400000, guid: cb54998eedb7e09449a9e049bc53ff92, type: 2}
