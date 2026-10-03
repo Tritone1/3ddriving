@@ -22,3 +22,5 @@ sysinfo.txt
 crashlytics-build.properties
 .DS_Store
 Thumbs.db
+.utmp/*
+.vsconfig
