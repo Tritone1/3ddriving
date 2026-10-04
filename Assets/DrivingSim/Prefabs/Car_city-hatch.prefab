@@ -136,8 +136,8 @@ MonoBehaviour:
     rightVisual: {fileID: 2318641525361944069}
     leftVisualPositionOffset: {x: 0, y: 0, z: 0}
     rightVisualPositionOffset: {x: 0, y: 0, z: 0}
-    leftVisualRotationOffset: {x: 0.25000006, y: 0.25, z: -0.0669873, w: 0.9330128}
-    rightVisualRotationOffset: {x: -0.3696438, y: 0.23911765, z: 0.099045776, w: 0.8923992}
+    leftVisualRotationOffset: {x: 0.0, y: 0, z: 0.0, w: 0.9330128}
+    rightVisualRotationOffset: {x: 0.0, y: 0.0, z: 0.0, w: 0.8923992}
     steering: 1
     powered: 1
     handbrake: 0
@@ -147,8 +147,8 @@ MonoBehaviour:
     rightVisual: {fileID: 2152491415482873455}
     leftVisualPositionOffset: {x: 0, y: 0, z: 0}
     rightVisualPositionOffset: {x: 0, y: 0, z: 0}
-    leftVisualRotationOffset: {x: 0.98480785, y: 0, z: 0, w: 0.17364815}
-    rightVisualRotationOffset: {x: -0.95371705, y: 0, z: 0, w: 0.30070585}
+    leftVisualRotationOffset: {x: 0.0, y: 0, z: 0, w: 0.17364815}
+    rightVisualRotationOffset: {x: 0.0, y: 0, z: 0, w: 0.30070585}
     steering: 0
     powered: 1
     handbrake: 1
