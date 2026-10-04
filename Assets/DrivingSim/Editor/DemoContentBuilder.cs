@@ -188,8 +188,8 @@ namespace DrivingSim.Editor
             WheelCollider fr = CreateWheelCollider(root.transform, "WheelCollider_FR", new Vector3(x, 0.48f, z));
             WheelCollider rl = CreateWheelCollider(root.transform, "WheelCollider_RL", new Vector3(-x, 0.48f, -z));
             WheelCollider rr = CreateWheelCollider(root.transform, "WheelCollider_RR", new Vector3(x, 0.48f, -z));
-            Transform flv = CreateWheelVisual(root.transform, "Wheel_FL", fl.transform.localPosition);
-            Transform frv = CreateWheelVisual(root.transform, "Wheel_FR", fr.transform.localPosition);
+            Transform flv = CreateWheelVisual(root.transform, "Wheel_FL", new Vector3(0, 0.00f, 0));
+            Transform frv = CreateWheelVisual(root.transform, "Wheel_FR", new Vector3(0, 0.00f, 0));
             Transform rlv = CreateWheelVisual(root.transform, "Wheel_RL", rl.transform.localPosition);
             Transform rrv = CreateWheelVisual(root.transform, "Wheel_RR", rr.transform.localPosition);
 
