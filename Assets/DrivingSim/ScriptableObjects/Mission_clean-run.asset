@@ -19,6 +19,7 @@ MonoBehaviour:
   targetId: 
   targetDistanceMetres: 1200
   timeLimitSeconds: 0
-  rewardMoney: 3400
+  difficulty: 2
+  rewardMoney: 1900
   unlockCarId: 
   completionRadius: 8

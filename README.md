@@ -1,6 +1,6 @@
 # Mobile Driving Simulator
 
-A data-driven Unity 6 LTS/URP starter game for Android and iOS. It includes a forgiving WheelCollider vehicle, chase/hood cameras, fuel and refuelling, three mission modes, economy/progression, a garage/shop, JSON saves, mobile controls, HUD/menu presenters, pooling hooks, and quality presets.
+A data-driven Unity 6 LTS/URP starter game for Android and iOS. Players begin with $1,000, complete generated Easy/Medium/Hard driving missions for $500–$2,000, then buy or modify a catalog of 15 CC0 vehicles in the garage. It also includes a forgiving WheelCollider vehicle, collision-enabled city buildings, chase/hood cameras, fuel and refuelling, JSON saves, mobile controls, HUD/menu presenters, pooling hooks, and quality presets.
 
 ## Build plan
 

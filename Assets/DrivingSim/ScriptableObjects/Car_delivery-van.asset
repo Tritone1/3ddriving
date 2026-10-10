@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82772c93555c1c744a0e6426b4484440, type: 3}
+  m_Name: Car_delivery-van
+  m_EditorClassIdentifier: 
+  id: delivery-van
+  displayName: Delivery Van
+  price: 10000
+  unlockMissionId: 
+  prefab: {fileID: 491161152083434609, guid: 9fb2cd5bb1af264488124cbcb98312ae, type: 3}
+  mass: 2250
+  maxMotorTorque: 2150
+  maxBrakeTorque: 4500
+  maxSteerAngle: 32
+  topSpeedKph: 165
+  tireGrip: 1
+  downforce: 25
+  centerOfMass: {x: 0, y: -0.45, z: 0.1}
+  torqueCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.65
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.35
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.72
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  gearRatios:
+  - 3.1
+  - 2.15
+  - 1.55
+  - 1.16
+  - 0.92
+  - 0.74
+  idleRpm: 850
+  maxRpm: 7000
+  finalDrive: 3.42
+  fuelCapacityLitres: 86
+  consumptionLitresPer100Km: 14

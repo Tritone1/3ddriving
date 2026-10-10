@@ -24,6 +24,13 @@ namespace DrivingSim.UI
         [SerializeField] private Text moneyText;
         [SerializeField] private Text missionText;
         [SerializeField] private RectTransform directionArrow;
+        private GameObject refuelControl;
+        private Text refuelText;
+        private Image refuelBackground;
+        private Button engineButton;
+        private Text engineButtonText;
+        private Image engineButtonBackground;
+        private GasStation[] gasStations;
 
         public void Configure(CarController vehicle, FuelSystem tank, WalletBehaviour currency, MissionManager missionManager,
             MobileInputState controls, UnityEngine.Camera camera)
@@ -34,6 +41,16 @@ namespace DrivingSim.UI
             missions = missionManager;
             mobileInput = controls;
             worldCamera = camera;
+            Transform refuelTransform = transform.Find("Refuel");
+            if (refuelTransform != null)
+            {
+                refuelControl = refuelTransform.gameObject;
+                refuelText = refuelTransform.GetComponentInChildren<Text>(true);
+                refuelBackground = refuelTransform.GetComponent<Image>();
+                refuelControl.SetActive(false);
+            }
+            EnsureEngineButton();
+            gasStations = FindObjectsByType<GasStation>(FindObjectsSortMode.None);
         }
 
         private void Update()
@@ -64,7 +81,106 @@ namespace DrivingSim.UI
                 if (lowFuelWarning != null) lowFuelWarning.SetActive(fuel.IsLow);
             }
             if (moneyText != null && wallet != null) moneyText.text = $"${wallet.Balance:N0}";
+            UpdateEngineButton();
+            UpdateRefuelPrompt();
             UpdateMission();
+        }
+
+        private void UpdateRefuelPrompt()
+        {
+            if (refuelControl == null || fuel == null) return;
+            bool ready = false;
+            if (gasStations != null)
+            {
+                foreach (GasStation station in gasStations)
+                {
+                    if (station == null || !station.IsVehicleInRange(fuel)) continue;
+                    ready = true;
+                    break;
+                }
+            }
+
+            if (refuelControl.activeSelf != ready) refuelControl.SetActive(ready);
+            if (!ready) return;
+            if (refuelText != null) refuelText.text = "REFUEL\nTAP OR HOLD";
+            if (refuelBackground != null)
+                refuelBackground.color = new Color(0.08f, 0.48f, 0.28f, 0.92f);
+        }
+
+        private void EnsureEngineButton()
+        {
+            Transform existing = transform.Find("EngineStartStop");
+            GameObject buttonObject;
+            if (existing != null) buttonObject = existing.gameObject;
+            else
+            {
+                buttonObject = new GameObject("EngineStartStop", typeof(RectTransform), typeof(Image), typeof(Button));
+                buttonObject.transform.SetParent(transform, false);
+            }
+
+            RectTransform rect = buttonObject.transform as RectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(-330f, 430f);
+            rect.sizeDelta = new Vector2(200f, 82f);
+
+            engineButtonBackground = buttonObject.GetComponent<Image>();
+            engineButton = buttonObject.GetComponent<Button>();
+            engineButton.transition = Selectable.Transition.None;
+            engineButton.onClick.RemoveListener(ToggleEngine);
+            engineButton.onClick.AddListener(ToggleEngine);
+
+            engineButtonText = buttonObject.GetComponentInChildren<Text>(true);
+            if (engineButtonText == null)
+            {
+                GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(Text));
+                labelObject.transform.SetParent(buttonObject.transform, false);
+                RectTransform labelRect = labelObject.transform as RectTransform;
+                labelRect.anchorMin = Vector2.zero;
+                labelRect.anchorMax = Vector2.one;
+                labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+                engineButtonText = labelObject.GetComponent<Text>();
+                engineButtonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                engineButtonText.fontSize = 20;
+                engineButtonText.alignment = TextAnchor.MiddleCenter;
+                engineButtonText.color = Color.white;
+                engineButtonText.raycastTarget = false;
+            }
+            buttonObject.transform.SetAsLastSibling();
+        }
+
+        private void UpdateEngineButton()
+        {
+            if (engineButton == null || engineButtonText == null || car == null || mobileInput == null) return;
+            bool parked = mobileInput.SelectedGear == MobileInputState.TransmissionGear.Park;
+            bool stationary = car.SpeedKph <= 0.35f;
+            bool canToggle = parked && stationary;
+            engineButton.interactable = canToggle;
+
+            if (car.IsEngineRunning)
+                engineButtonText.text = canToggle ? "ENGINE\nSTOP" : "PARK TO\nSTOP ENGINE";
+            else
+                engineButtonText.text = canToggle ? "ENGINE\nSTART" : "SELECT P\nTO START";
+
+            if (engineButtonBackground != null)
+                engineButtonBackground.color = !canToggle
+                    ? new Color(0.16f, 0.18f, 0.22f, 0.72f)
+                    : car.IsEngineRunning
+                        ? new Color(0.75f, 0.22f, 0.08f, 0.94f)
+                        : new Color(0.08f, 0.5f, 0.25f, 0.94f);
+        }
+
+        private void ToggleEngine()
+        {
+            if (car == null || mobileInput == null) return;
+            if (mobileInput.SelectedGear != MobileInputState.TransmissionGear.Park || car.SpeedKph > 0.35f) return;
+            car.TrySetEngineRunning(!car.IsEngineRunning);
+            UpdateEngineButton();
+        }
+
+        private void OnDestroy()
+        {
+            if (engineButton != null) engineButton.onClick.RemoveListener(ToggleEngine);
         }
 
         private void UpdateMission()

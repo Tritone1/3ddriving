@@ -38,7 +38,8 @@ namespace DrivingSim.Vehicles
         private float powerMultiplier = 1f;
         private float gripMultiplier = 1f;
         private float brakeMultiplier = 1f;
-        private bool engineEnabled = true;
+        private bool fuelAvailable = true;
+        private bool engineRunning = true;
 
         public event Action<float> SpeedChanged;
         public event Action CollisionOccurred;
@@ -47,6 +48,7 @@ namespace DrivingSim.Vehicles
         public float EngineRpm { get; private set; }
         public int CurrentGear => currentGear + 1;
         public float ThrottleInput => input.Throttle;
+        public bool IsEngineRunning => engineRunning && fuelAvailable;
         public bool HasCollidedRecently { get; private set; }
 
         private void Awake()
@@ -76,7 +78,7 @@ namespace DrivingSim.Vehicles
             float forwardSpeed = Vector3.Dot(body.linearVelocity, transform.forward) * 3.6f;
             bool reversing = input.Throttle < -0.05f && forwardSpeed < 4f;
             bool directionalBrake = input.Throttle < -0.05f && forwardSpeed > 4f;
-            float throttle = engineEnabled && !directionalBrake ? (reversing ? input.Throttle * 0.55f : Mathf.Max(0f, input.Throttle)) : 0f;
+            float throttle = IsEngineRunning && !directionalBrake ? (reversing ? input.Throttle * 0.55f : Mathf.Max(0f, input.Throttle)) : 0f;
             float torque = CalculateMotorTorque(throttle, speedRatio);
             float brake = Mathf.Max(input.Brake, directionalBrake ? -input.Throttle : 0f) * carData.MaxBrakeTorque * brakeMultiplier;
 
@@ -126,14 +128,26 @@ namespace DrivingSim.Vehicles
 
         public void SetEngineEnabled(bool enabled)
         {
-            engineEnabled = enabled;
-            if (!enabled)
+            fuelAvailable = enabled;
+            if (!fuelAvailable) engineRunning = false;
+            if (!IsEngineRunning) CutMotorTorque();
+        }
+
+        public bool TrySetEngineRunning(bool running)
+        {
+            if (running && !fuelAvailable) return false;
+            engineRunning = running;
+            if (!IsEngineRunning) CutMotorTorque();
+            return true;
+        }
+
+        private void CutMotorTorque()
+        {
+            if (axles == null) return;
+            foreach (Axle axle in axles)
             {
-                foreach (Axle axle in axles)
-                {
-                    if (axle.leftCollider != null) axle.leftCollider.motorTorque = 0f;
-                    if (axle.rightCollider != null) axle.rightCollider.motorTorque = 0f;
-                }
+                if (axle.leftCollider != null) axle.leftCollider.motorTorque = 0f;
+                if (axle.rightCollider != null) axle.rightCollider.motorTorque = 0f;
             }
         }
 
@@ -189,6 +203,11 @@ namespace DrivingSim.Vehicles
 
         private void UpdateEngineRpmAndGear()
         {
+            if (!IsEngineRunning)
+            {
+                EngineRpm = Mathf.MoveTowards(EngineRpm, 0f, Time.fixedDeltaTime * 4500f);
+                return;
+            }
             if (carData.GearRatios == null || carData.GearRatios.Length == 0) return;
             float wheelRpm = 0f;
             int count = 0;

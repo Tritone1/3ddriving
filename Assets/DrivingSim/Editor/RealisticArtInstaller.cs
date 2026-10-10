@@ -15,20 +15,20 @@ using UnityEngine.UI;
 namespace DrivingSim.EditorTools
 {
     /// <summary>
-    /// Applies the free Khronos PBR car and Quaternius CC0 city art while preserving
-    /// the generated WheelCollider rig, missions, fuel system, and input wiring.
+    /// Applies the Quaternius CC0 city art while preserving the generated
+    /// WheelCollider rig, missions, fuel system, and input wiring.
     /// </summary>
     [InitializeOnLoad]
     public static class RealisticArtInstaller
     {
-        private const string InstallKey = "DrivingSim.RealisticArtInstaller.v11";
+        private const string InstallKey = "DrivingSim.RealisticArtInstaller.v21";
         private const string DemoScenePath = "Assets/DrivingSim/Scenes/Demo.unity";
         private const string CarPath = "Assets/ThirdParty/Khronos/CarConcept/CarConcept.glb";
         private const string CityRoot = "Assets/ThirdParty/Quaternius/DowntownCityMegaKit/";
         private const string ModelRoot = CityRoot + "Exports/FBX (Unity)/";
         private const string TextureRoot = CityRoot + "Textures/";
-        private const string ShifterImagePath = "Assets/DrivingSim/UI/Generated/AutomaticShifter.png";
         private const string MaterialRoot = "Assets/DrivingSim/Materials/Realistic/";
+        private const string StationRoot = "Assets/ThirdParty/3DAssetsDev/PetrolStation/";
         private static int retryCount;
         private static double nextRetryTime;
 
@@ -50,6 +50,14 @@ namespace DrivingSim.EditorTools
             public Material MarkingYellow;
         }
 
+        private sealed class StationModels
+        {
+            public GameObject FuelPump;
+            public GameObject PumpIsland;
+            public GameObject Canopy;
+            public GameObject CanopyColumn;
+        }
+
         static RealisticArtInstaller()
         {
             EditorApplication.delayCall += TryAutomaticInstall;
@@ -65,13 +73,20 @@ namespace DrivingSim.EditorTools
             }
 
             AssetDatabase.Refresh();
-            ConfigureShifterTexture();
-            GameObject car = LoadModel(CarPath);
             GameObject buildingLarge = LoadModel(ModelRoot + "Building_Large_2.fbx");
             GameObject buildingMedium = LoadModel(ModelRoot + "Building_Medium_2_001.fbx");
             GameObject buildingSmall = LoadModel(ModelRoot + "Building_Small_1.fbx");
+            StationModels stationModels = new StationModels
+            {
+                FuelPump = LoadModel(StationRoot + "FuelPumpTwoHose.glb"),
+                PumpIsland = LoadModel(StationRoot + "PumpIsland.glb"),
+                Canopy = LoadModel(StationRoot + "CanopySection.glb"),
+                CanopyColumn = LoadModel(StationRoot + "CanopyColumn.glb")
+            };
 
-            if (car == null || buildingLarge == null || buildingMedium == null || buildingSmall == null)
+            if (buildingLarge == null || buildingMedium == null || buildingSmall == null ||
+                stationModels.FuelPump == null || stationModels.PumpIsland == null ||
+                stationModels.Canopy == null || stationModels.CanopyColumn == null)
             {
                 Debug.LogWarning("Realistic art is still importing. The installer will retry after Unity finishes.");
                 ScheduleRetry();
@@ -82,19 +97,16 @@ namespace DrivingSim.EditorTools
             ConfigureNormalMaps();
             CityMaterials materials = CreateCityMaterials();
 
-            UpgradeCarPrefab("Assets/DrivingSim/Prefabs/Car_city-hatch.prefab", car,
-                new Color(0.72f, 0.035f, 0.025f), new Vector3(1.84f, 1.36f, 4.25f), "Carmine");
-            UpgradeCarPrefab("Assets/DrivingSim/Prefabs/Car_sport-coupe.prefab", car,
-                new Color(0.055f, 0.12f, 0.24f), new Vector3(1.9f, 1.32f, 4.45f), "Midnight");
-            UpgradeCarPrefab("Assets/DrivingSim/Prefabs/Car_utility-suv.prefab", car,
-                new Color(0.22f, 0.23f, 0.25f), new Vector3(1.96f, 1.48f, 4.55f), "Graphite");
+            RepairRealisticWheelPose("Assets/DrivingSim/Prefabs/Car_city-hatch.prefab");
+            RepairRealisticWheelPose("Assets/DrivingSim/Prefabs/Car_sport-coupe.prefab");
+            RepairRealisticWheelPose("Assets/DrivingSim/Prefabs/Car_utility-suv.prefab");
 
-            UpgradeDemoScene(new[] { buildingLarge, buildingMedium, buildingSmall }, materials);
+            UpgradeDemoScene(new[] { buildingLarge, buildingMedium, buildingSmall }, stationModels, materials);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             EditorPrefs.SetBool(InstallKey, true);
-            Debug.Log("DRIVING_SIM_REALISTIC_ART_APPLIED: PBR car, downtown buildings, textured roads, and mobile lighting installed.");
+            Debug.Log("DRIVING_SIM_REALISTIC_ART_APPLIED: Downtown buildings, collision, textured roads, mobile lighting, and camera-safe two-pump gas stations installed.");
         }
 
         private static void TryAutomaticInstall()
@@ -156,22 +168,6 @@ namespace DrivingSim.EditorTools
                 importer.maxTextureSize = 1024;
                 importer.SaveAndReimport();
             }
-        }
-
-        private static void ConfigureShifterTexture()
-        {
-            TextureImporter importer = AssetImporter.GetAtPath(ShifterImagePath) as TextureImporter;
-            if (importer == null) return;
-
-            bool changed = importer.textureType != TextureImporterType.Sprite || importer.mipmapEnabled ||
-                           !importer.alphaIsTransparency || importer.maxTextureSize != 512;
-            importer.textureType = TextureImporterType.Sprite;
-            importer.spriteImportMode = SpriteImportMode.Single;
-            importer.alphaIsTransparency = true;
-            importer.mipmapEnabled = false;
-            importer.maxTextureSize = 512;
-            importer.textureCompression = TextureImporterCompression.CompressedHQ;
-            if (changed) importer.SaveAndReimport();
         }
 
         private static CityMaterials CreateCityMaterials()
@@ -270,6 +266,18 @@ namespace DrivingSim.EditorTools
                 CreateCarMaterialOverrides(visual, paint, variantName);
                 WireRealisticWheelVisuals(root, visual);
                 ConfigureGameplayFuel(root);
+
+                CarRigReferences rig = root.GetComponent<CarRigReferences>();
+                if (rig != null)
+                {
+                    Renderer[] visualRenderers = visual.GetComponentsInChildren<Renderer>(true);
+                    SerializedObject rigSo = new SerializedObject(rig);
+                    SerializedProperty paintRenderers = rigSo.FindProperty("paintRenderers");
+                    paintRenderers.arraySize = visualRenderers.Length;
+                    for (int i = 0; i < visualRenderers.Length; i++)
+                        paintRenderers.GetArrayElementAtIndex(i).objectReferenceValue = visualRenderers[i];
+                    rigSo.ApplyModifiedPropertiesWithoutUndo();
+                }
 
                 foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>(true))
                 {
@@ -412,6 +420,12 @@ namespace DrivingSim.EditorTools
             Transform rl = TakeClosestWheel(rlCollider, available);
             Transform rr = TakeClosestWheel(rrCollider, available);
 
+            // The showcase source model ships with its front wheels posed at an
+            // angle. Match each front wheel to the straight rear wheel on the
+            // same side before recording the WheelCollider bind-pose offset.
+            if (fl != null && rl != null) fl.rotation = rl.rotation;
+            if (fr != null && rr != null) fr.rotation = rr.rotation;
+
             // The generated physics rig used placeholder wheel dimensions. Move
             // each WheelCollider onto the imported wheel pivot and derive its
             // radius from that mesh so the contact patch and visible wheel agree.
@@ -428,6 +442,33 @@ namespace DrivingSim.EditorTools
             ConfigureWheelBinding(axles.GetArrayElementAtIndex(1), "left", rlCollider, rl);
             ConfigureWheelBinding(axles.GetArrayElementAtIndex(1), "right", rrCollider, rr);
             serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void RepairRealisticWheelPose(string prefabPath)
+        {
+            GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
+            try
+            {
+                Transform visual = root.transform.Find("RealisticVisual");
+                if (visual == null) return;
+                WireRealisticWheelVisuals(root, visual.gameObject);
+                CarRigReferences rig = root.GetComponent<CarRigReferences>();
+                if (rig != null)
+                {
+                    Renderer[] visualRenderers = visual.GetComponentsInChildren<Renderer>(true);
+                    SerializedObject rigSo = new SerializedObject(rig);
+                    SerializedProperty paintRenderers = rigSo.FindProperty("paintRenderers");
+                    paintRenderers.arraySize = visualRenderers.Length;
+                    for (int i = 0; i < visualRenderers.Length; i++)
+                        paintRenderers.GetArrayElementAtIndex(i).objectReferenceValue = visualRenderers[i];
+                    rigSo.ApplyModifiedPropertiesWithoutUndo();
+                }
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         private static void AlignWheelCollider(WheelCollider collider, Transform visual)
@@ -522,7 +563,7 @@ namespace DrivingSim.EditorTools
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void UpgradeDemoScene(GameObject[] buildings, CityMaterials materials)
+        private static void UpgradeDemoScene(GameObject[] buildings, StationModels stationModels, CityMaterials materials)
         {
             Scene scene = SceneManager.GetSceneByPath(DemoScenePath);
             bool openedForInstall = !scene.IsValid() || !scene.isLoaded;
@@ -537,6 +578,7 @@ namespace DrivingSim.EditorTools
             BuildRoadNetwork(environment.transform, materials);
             BuildCityBlocks(environment.transform, buildings, materials);
             AddStreetProps(environment.transform, materials);
+            BuildGasStations(scene, stationModels, materials);
             ImproveHud(scene);
             ImproveLighting(scene);
 
@@ -552,7 +594,15 @@ namespace DrivingSim.EditorTools
                 if (root.name == "Ground") AssignMaterial(root, materials.Grass);
                 if (root.name.StartsWith("Road_", StringComparison.Ordinal) ||
                     root.name.StartsWith("Intersection_", StringComparison.Ordinal))
+                {
                     AssignMaterial(root, materials.Asphalt);
+                    Vector3 position = root.transform.position;
+                    position.y = 0f;
+                    root.transform.position = position;
+                    Vector3 scale = root.transform.localScale;
+                    scale.y = 0.2f;
+                    root.transform.localScale = scale;
+                }
             }
         }
 
@@ -569,8 +619,8 @@ namespace DrivingSim.EditorTools
             {
                 foreach (float x in horizontalSegmentCenters)
                 {
-                    CreateVisualBox(parent, "Sidewalk", new Vector3(x, 0.16f, z - 6.75f), new Vector3(47f, 0.22f, 1.5f), materials.Sidewalk);
-                    CreateVisualBox(parent, "Sidewalk", new Vector3(x, 0.16f, z + 6.75f), new Vector3(47f, 0.22f, 1.5f), materials.Sidewalk);
+                    CreateHorizontalSidewalk(parent, materials.Sidewalk, x, z, -1f);
+                    CreateHorizontalSidewalk(parent, materials.Sidewalk, x, z, 1f);
                     CreateVisualBox(parent, "Yellow Center Line", new Vector3(x, 0.112f, z - 0.13f), new Vector3(47f, 0.025f, 0.11f), materials.MarkingYellow);
                     CreateVisualBox(parent, "Yellow Center Line", new Vector3(x, 0.112f, z + 0.13f), new Vector3(47f, 0.025f, 0.11f), materials.MarkingYellow);
                     CreateVisualBox(parent, "White Edge Line", new Vector3(x, 0.112f, z - 5.15f), new Vector3(47f, 0.025f, 0.12f), materials.MarkingWhite);
@@ -607,6 +657,33 @@ namespace DrivingSim.EditorTools
                     }
                 }
             }
+        }
+
+        private static void CreateHorizontalSidewalk(Transform parent, Material material,
+            float segmentCenterX, float roadZ, float side)
+        {
+            float sidewalkZ = roadZ + side * 6.75f;
+            bool eastStationEntrance = Mathf.Approximately(roadZ, -42f) && side > 0f && segmentCenterX > 0f;
+            bool westStationEntrance = Mathf.Approximately(roadZ, 42f) && side < 0f && segmentCenterX < 0f;
+
+            if (eastStationEntrance)
+            {
+                // Leave x=41.5..53 clear so the east station has a road-level driveway.
+                CreateVisualBox(parent, "Sidewalk", new Vector3(23.75f, 0.16f, sidewalkZ),
+                    new Vector3(35.5f, 0.22f, 1.5f), material);
+                return;
+            }
+
+            if (westStationEntrance)
+            {
+                // Mirror the driveway opening at the west station.
+                CreateVisualBox(parent, "Sidewalk", new Vector3(-23.75f, 0.16f, sidewalkZ),
+                    new Vector3(35.5f, 0.22f, 1.5f), material);
+                return;
+            }
+
+            CreateVisualBox(parent, "Sidewalk", new Vector3(segmentCenterX, 0.16f, sidewalkZ),
+                new Vector3(47f, 0.22f, 1.5f), material);
         }
 
         private static void BuildCityBlocks(Transform parent, GameObject[] models, CityMaterials materials)
@@ -648,6 +725,125 @@ namespace DrivingSim.EditorTools
                 CreateProp(parent, planter, materials, position, 0f, 0.75f, "Concrete Planter");
         }
 
+        private static void BuildGasStations(Scene scene, StationModels models, CityMaterials materials)
+        {
+            DestroyRoot(scene, "GasStation_East");
+            DestroyRoot(scene, "GasStation_West");
+
+            CreateGasStation(scene, "GasStation_East", new Vector3(48f, 0f, -32f), 0f, models, materials);
+            CreateGasStation(scene, "GasStation_West", new Vector3(-48f, 0f, 32f), 180f, models, materials);
+        }
+
+        private static void CreateGasStation(Scene scene, string name, Vector3 position, float yaw,
+            StationModels models, CityMaterials materials)
+        {
+            GameObject root = new GameObject(name);
+            SceneManager.MoveGameObjectToScene(root, scene);
+            root.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+
+            // The forecourt overlaps the road edge at exactly the same height. There
+            // is no driveway cube or raised curb for the WheelColliders to catch on.
+            CreateStationBox(root.transform, "Forecourt", new Vector3(0f, 0f, 0f),
+                new Vector3(11.5f, 0.2f, 11.5f), materials.Concrete, true);
+            CreateStationBox(root.transform, "Shop", new Vector3(0f, 1.65f, 4.45f),
+                new Vector3(8.4f, 3.3f, 2.5f), materials.Brick, true);
+            CreateStationBox(root.transform, "Shop Fascia", new Vector3(0f, 3.08f, 3.16f),
+                new Vector3(8.5f, 0.45f, 0.12f), materials.Trim, false);
+            CreateStationBox(root.transform, "Shop Window Left", new Vector3(-2.15f, 1.65f, 3.15f),
+                new Vector3(2.9f, 1.75f, 0.08f), materials.Glass, false);
+            CreateStationBox(root.transform, "Shop Window Right", new Vector3(2.15f, 1.65f, 3.15f),
+                new Vector3(2.9f, 1.75f, 0.08f), materials.Glass, false);
+
+            GameObject canopy = InstantiateStationAsset(models.Canopy, root.transform, "Station Canopy",
+                new Vector3(0f, 1.3f, 0.55f), Quaternion.identity, new Vector3(1.2f, 1f, 0.8f));
+            DisableCanopyBuiltInSupports(canopy);
+            if (canopy != null) canopy.AddComponent<StationCanopyOcclusion>();
+
+            Vector3[] columnPositions =
+            {
+                new Vector3(-3.25f, 0f, 2.95f), new Vector3(3.25f, 0f, 2.95f)
+            };
+            for (int i = 0; i < columnPositions.Length; i++)
+            {
+                InstantiateStationAsset(models.CanopyColumn, root.transform, "Canopy Column " + (i + 1),
+                    columnPositions[i], Quaternion.identity, new Vector3(1f, 1.28f, 1f));
+                CreateStationCollider(root.transform, "Canopy Column Collider " + (i + 1),
+                    columnPositions[i] + Vector3.up * 2.95f, new Vector3(0.65f, 5.9f, 0.65f));
+            }
+            InstantiateStationAsset(models.PumpIsland, root.transform, "Pump Island", Vector3.zero, Quaternion.identity);
+            InstantiateStationAsset(models.FuelPump, root.transform, "Fuel Pump 1",
+                new Vector3(-1.35f, 0f, 0f), Quaternion.identity);
+            InstantiateStationAsset(models.FuelPump, root.transform, "Fuel Pump 2",
+                new Vector3(1.35f, 0f, 0f), Quaternion.identity);
+
+            CreateStationCollider(root.transform, "Pump Collider 1", new Vector3(-1.35f, 1.14f, 0f),
+                new Vector3(0.78f, 2.28f, 0.96f));
+            CreateStationCollider(root.transform, "Pump Collider 2", new Vector3(1.35f, 1.14f, 0f),
+                new Vector3(0.78f, 2.28f, 0.96f));
+            CreateStationCollider(root.transform, "Pump Island Collider", new Vector3(0f, 0.22f, 0f),
+                new Vector3(4.8f, 0.44f, 1.23f));
+
+            GameObject zone = new GameObject("Highlighted Refuel Zone");
+            zone.transform.SetParent(root.transform, false);
+            zone.transform.localPosition = new Vector3(0f, 0f, -2.45f);
+            BoxCollider zoneCollider = zone.AddComponent<BoxCollider>();
+            zoneCollider.isTrigger = true;
+            zoneCollider.center = new Vector3(0f, 1.35f, 0f);
+            zoneCollider.size = new Vector3(9f, 2.7f, 4.2f);
+            zone.AddComponent<GasStation>();
+            zone.AddComponent<GasStationZoneIndicator>();
+        }
+
+        private static GameObject InstantiateStationAsset(GameObject asset, Transform parent, string name,
+            Vector3 localPosition, Quaternion localRotation, Vector3? localScale = null)
+        {
+            GameObject instance = InstantiateAsset(asset, parent);
+            if (instance == null) return null;
+            instance.name = name;
+            instance.transform.localPosition = localPosition;
+            instance.transform.localRotation = localRotation;
+            instance.transform.localScale = localScale ?? Vector3.one;
+            RemoveColliders(instance);
+            SetStatic(instance);
+            return instance;
+        }
+
+        private static void DisableCanopyBuiltInSupports(GameObject canopy)
+        {
+            if (canopy == null) return;
+            foreach (Renderer renderer in canopy.GetComponentsInChildren<Renderer>(true))
+            {
+                string rendererName = renderer.gameObject.name;
+                if (rendererName.EndsWith("_0", StringComparison.Ordinal) ||
+                    rendererName.EndsWith("_1", StringComparison.Ordinal) ||
+                    rendererName.EndsWith("_2", StringComparison.Ordinal) ||
+                    rendererName.EndsWith("_3", StringComparison.Ordinal))
+                    renderer.enabled = false;
+            }
+        }
+
+        private static void CreateStationBox(Transform parent, string name, Vector3 localPosition,
+            Vector3 scale, Material material, bool keepCollider)
+        {
+            GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            box.name = name;
+            box.transform.SetParent(parent, false);
+            box.transform.localPosition = localPosition;
+            box.transform.localScale = scale;
+            AssignMaterial(box, material);
+            if (!keepCollider) UnityEngine.Object.DestroyImmediate(box.GetComponent<Collider>());
+            SetStatic(box);
+        }
+
+        private static void CreateStationCollider(Transform parent, string name, Vector3 localPosition, Vector3 size)
+        {
+            GameObject colliderObject = new GameObject(name);
+            colliderObject.transform.SetParent(parent, false);
+            colliderObject.transform.localPosition = localPosition;
+            BoxCollider collider = colliderObject.AddComponent<BoxCollider>();
+            collider.size = size;
+        }
+
         private static void CreateRoadPiece(Transform parent, GameObject model, CityMaterials materials,
             Vector3 position, float yaw, float footprint, string name)
         {
@@ -682,7 +878,17 @@ namespace DrivingSim.EditorTools
             building.transform.localScale *= scale;
             bounds = CalculateWorldBounds(building);
             building.transform.position += position - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+            AddBuildingCollider(building);
             SetStatic(building);
+        }
+
+        private static void AddBuildingCollider(GameObject building)
+        {
+            Bounds localBounds = CalculateLocalBounds(building.transform, building);
+            BoxCollider collider = building.AddComponent<BoxCollider>();
+            collider.center = localBounds.center;
+            collider.size = localBounds.size;
+            collider.isTrigger = false;
         }
 
         private static void CreateProp(Transform parent, GameObject model, CityMaterials materials,
@@ -713,6 +919,7 @@ namespace DrivingSim.EditorTools
             Transform reverseTransform = hud.transform.Find("Reverse");
             if (reverseTransform != null) UnityEngine.Object.DestroyImmediate(reverseTransform.gameObject);
             CreateGearSelector(hud.transform, input);
+            CreateEngineStartStopButton(hud.transform);
 
             HudController hudController = hud.GetComponent<HudController>();
             if (hudController != null)
@@ -815,20 +1022,12 @@ namespace DrivingSim.EditorTools
 
             GameObject panel = new GameObject("GearSelector", typeof(RectTransform), typeof(GearSelectorUI));
             panel.transform.SetParent(hud, false);
-            ConfigureRect(panel.transform as RectTransform, new Vector2(1f, 0f), new Vector2(-225f, 350f), new Vector2(420f, 420f));
-
-            GameObject artworkObject = new GameObject("Artwork", typeof(RectTransform), typeof(Image));
-            artworkObject.transform.SetParent(panel.transform, false);
-            ConfigureRect(artworkObject.transform as RectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(420f, 420f));
-            Image artwork = artworkObject.GetComponent<Image>();
-            artwork.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(ShifterImagePath);
-            artwork.preserveAspect = true;
-            artwork.raycastTarget = false;
+            ConfigureRect(panel.transform as RectTransform, new Vector2(1f, 0f), new Vector2(-150f, 280f), new Vector2(220f, 300f));
 
             GameObject interactionObject = new GameObject("InteractionArea", typeof(RectTransform), typeof(Image));
             interactionObject.transform.SetParent(panel.transform, false);
             ConfigureRect(interactionObject.transform as RectTransform, new Vector2(0.5f, 0.5f),
-                new Vector2(52f, -40f), new Vector2(78f, 178f));
+                Vector2.zero, new Vector2(220f, 300f));
             Image interaction = interactionObject.GetComponent<Image>();
             interaction.color = new Color(0f, 0f, 0f, 0f);
             interaction.raycastTarget = true;
@@ -841,13 +1040,13 @@ namespace DrivingSim.EditorTools
             selectorSo.ApplyModifiedPropertiesWithoutUndo();
 
             string[] names = { "P", "R", "N", "D" };
-            float[] yPositions = { 17f, -20f, -58f, -96f };
+            float[] yPositions = { 75f, 25f, -25f, -75f };
             for (int i = 0; i < names.Length; i++)
             {
                 GameObject buttonObject = new GameObject(names[i], typeof(RectTransform), typeof(Image), typeof(Button));
                 buttonObject.transform.SetParent(panel.transform, false);
                 ConfigureRect(buttonObject.transform as RectTransform, new Vector2(0.5f, 0.5f),
-                    new Vector2(52f, yPositions[i]), new Vector2(44f, 32f));
+                    new Vector2(55f, yPositions[i]), new Vector2(52f, 38f));
                 Image background = buttonObject.GetComponent<Image>();
                 background.color = names[i] == "D"
                     ? new Color(1f, 0.28f, 0.02f, 0.5f)
@@ -855,9 +1054,55 @@ namespace DrivingSim.EditorTools
                 Button button = buttonObject.GetComponent<Button>();
                 button.targetGraphic = background;
                 button.transition = Selectable.Transition.None;
+
+                GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(Text));
+                labelObject.transform.SetParent(buttonObject.transform, false);
+                RectTransform labelRect = labelObject.transform as RectTransform;
+                labelRect.anchorMin = Vector2.zero;
+                labelRect.anchorMax = Vector2.one;
+                labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+                Text label = labelObject.GetComponent<Text>();
+                label.text = names[i];
+                label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                label.fontSize = 22;
+                label.alignment = TextAnchor.MiddleCenter;
+                label.color = names[i] == "D" ? Color.black : Color.white;
+                label.raycastTarget = false;
             }
 
             panel.transform.SetAsLastSibling();
+        }
+
+        private static void CreateEngineStartStopButton(Transform hud)
+        {
+            Transform previous = hud.Find("EngineStartStop");
+            if (previous != null) UnityEngine.Object.DestroyImmediate(previous.gameObject);
+
+            GameObject buttonObject = new GameObject("EngineStartStop", typeof(RectTransform), typeof(Image), typeof(Button));
+            buttonObject.transform.SetParent(hud, false);
+            ConfigureRect(buttonObject.transform as RectTransform, new Vector2(1f, 0f),
+                new Vector2(-330f, 430f), new Vector2(200f, 82f));
+            Image background = buttonObject.GetComponent<Image>();
+            background.color = new Color(0.75f, 0.22f, 0.08f, 0.94f);
+            Button button = buttonObject.GetComponent<Button>();
+            button.targetGraphic = background;
+            button.transition = Selectable.Transition.None;
+
+            GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            labelObject.transform.SetParent(buttonObject.transform, false);
+            RectTransform labelRect = labelObject.transform as RectTransform;
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+            Text label = labelObject.GetComponent<Text>();
+            label.text = "PARK TO\nSTOP ENGINE";
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontSize = 20;
+            label.fontStyle = FontStyle.Bold;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            label.raycastTarget = false;
+            buttonObject.transform.SetAsLastSibling();
         }
 
         private static void StylePedalControl(Transform control, PedalGraphic.PedalStyle style,

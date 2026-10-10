@@ -51,20 +51,39 @@ namespace DrivingSim.Editor
 
             MissionData[] missions =
             {
-                CreateMission("first-checkpoint", "First Checkpoint", "Follow the ring across town.", MissionType.ReachCheckpoint, "checkpoint-a", 0f, 0f, 1200, ""),
-                CreateMission("timed-delivery", "Harbor Delivery", "Reach the depot before time expires.", MissionType.TimedDelivery, "delivery", 0f, 75f, 2600, "utility-suv"),
-                CreateMission("clean-run", "Clean Run", "Drive 1.2 km without a hard collision.", MissionType.DistanceWithoutCrash, "", 1200f, 0f, 3400, "")
+                CreateMission("first-checkpoint", "First Checkpoint", "Follow the ring across town.", MissionType.ReachCheckpoint, MissionDifficulty.Easy, "checkpoint-a", 0f, 0f, 750, ""),
+                CreateMission("timed-delivery", "Harbor Delivery", "Reach the depot before time expires.", MissionType.TimedDelivery, MissionDifficulty.Medium, "delivery", 0f, 75f, 1250, "utility-suv"),
+                CreateMission("clean-run", "Clean Run", "Drive 1.2 km without a hard collision.", MissionType.DistanceWithoutCrash, MissionDifficulty.Hard, "", 1200f, 0f, 1900, "")
             };
 
-            CarData hatch = CreateCar("city-hatch", "City Hatch", 0, "", 1220f, 1250f, 3000f, 175f, 1.05f, 48f, 7.5f);
-            CarData coupe = CreateCar("sport-coupe", "Sport Coupe", 14500, "", 1390f, 1750f, 3800f, 225f, 1.18f, 58f, 10.5f);
-            CarData suv = CreateCar("utility-suv", "Utility SUV", 0, "timed-delivery", 1780f, 1900f, 4200f, 195f, 1.12f, 72f, 12f);
-            CarData[] cars = { hatch, coupe, suv };
+            CarData[] cars =
+            {
+                CreateCar("city-hatch", "City Hatch", 0, "", 1220f, 1250f, 3000f, 175f, 1.05f, 48f, 7.5f),
+                CreateCar("family-sedan", "Family Sedan", 3500, "", 1370f, 1380f, 3200f, 185f, 1.04f, 52f, 8.2f),
+                CreateCar("city-taxi", "City Taxi", 4500, "", 1400f, 1420f, 3300f, 180f, 1.03f, 55f, 8.8f),
+                CreateCar("sport-coupe", "Sport Coupe", 6500, "", 1390f, 1750f, 3800f, 225f, 1.18f, 58f, 10.5f),
+                CreateCar("urban-suv", "Urban SUV", 8500, "", 1680f, 1800f, 4000f, 190f, 1.1f, 68f, 11.5f),
+                CreateCar("utility-suv", "Utility SUV", 0, "timed-delivery", 1780f, 1900f, 4200f, 195f, 1.12f, 72f, 12f),
+                CreateCar("cargo-van", "Cargo Van", 7000, "", 1850f, 1750f, 4100f, 170f, 1.02f, 74f, 12.8f),
+                CreateCar("pickup-truck", "Pickup Truck", 9000, "", 1950f, 2050f, 4300f, 180f, 1.08f, 78f, 13.5f),
+                CreateCar("delivery-van", "Delivery Van", 10000, "", 2250f, 2150f, 4500f, 165f, 1f, 86f, 14f),
+                CreateCar("flatbed-truck", "Flatbed Truck", 11000, "", 2300f, 2250f, 4700f, 165f, 1.03f, 90f, 15f),
+                CreateCar("police-cruiser", "Police Cruiser", 12000, "", 1500f, 1950f, 4100f, 230f, 1.2f, 62f, 11f),
+                CreateCar("ambulance", "Ambulance", 16000, "", 2600f, 2350f, 5000f, 170f, 1.06f, 96f, 16f),
+                CreateCar("track-racer", "Track Racer", 18000, "", 1180f, 2450f, 4800f, 275f, 1.32f, 56f, 13f),
+                CreateCar("fire-truck", "Fire Truck", 22000, "", 4200f, 3200f, 6200f, 145f, 0.98f, 120f, 22f),
+                CreateCar("future-racer", "Future Racer", 25000, "", 1120f, 2850f, 5200f, 310f, 1.38f, 54f, 15f)
+            };
 
-            Color[] colors = { new Color(0.85f, 0.18f, 0.06f), new Color(0.05f, 0.25f, 0.8f), new Color(0.82f, 0.82f, 0.78f) };
+            Color[] colors =
+            {
+                new Color(0.85f, 0.18f, 0.06f), new Color(0.05f, 0.25f, 0.8f),
+                new Color(0.82f, 0.82f, 0.78f), new Color(0.16f, 0.62f, 0.32f),
+                new Color(0.7f, 0.12f, 0.42f)
+            };
             for (int i = 0; i < cars.Length; i++)
             {
-                GameObject prefab = CreateCarPrefab(cars[i], colors[i], i);
+                GameObject prefab = CreateCarPrefab(cars[i], colors[i % colors.Length], i % 3);
                 SetObject(cars[i], "prefab", prefab);
             }
 
@@ -77,7 +96,8 @@ namespace DrivingSim.Editor
             CreateGarageScene(database);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            EditorUtility.DisplayDialog("Driving Sim", "Demo content created. Open Assets/DrivingSim/Scenes/Demo.unity and press Play.", "OK");
+            if (!Application.isBatchMode)
+                EditorUtility.DisplayDialog("Driving Sim", "Demo content created. Open Assets/DrivingSim/Scenes/Demo.unity and press Play.", "OK");
         }
 
         [MenuItem("Driving Sim/Validate Generated Content")]
@@ -85,7 +105,7 @@ namespace DrivingSim.Editor
         {
             GameDatabase database = AssetDatabase.LoadAssetAtPath<GameDatabase>(DataPath + "/GameDatabase.asset");
             Require(database != null, "GameDatabase is missing.");
-            Require(database.Cars.Count == 3, $"Expected 3 cars, found {database.Cars.Count}.");
+            Require(database.Cars.Count == 15, $"Expected 15 cars, found {database.Cars.Count}.");
             Require(database.Missions.Count == 3, $"Expected 3 missions, found {database.Missions.Count}.");
             Require(database.Upgrades.Count == 5, $"Expected 5 upgrades, found {database.Upgrades.Count}.");
 
@@ -111,7 +131,7 @@ namespace DrivingSim.Editor
             Require(garage.IsValid(), "Garage scene could not be opened.");
             Require(UnityEngine.Object.FindFirstObjectByType<GarageController>() != null, "Garage scene has no GarageController.");
             EditorSceneManager.OpenScene(ScenePath + "/Demo.unity", OpenSceneMode.Single);
-            Debug.Log("DRIVING_SIM_VALIDATION_PASS: 3 cars, 3 missions, 5 upgrades, 2 scenes, 2 gas stations, URP, HUD, garage, and four-wheel prefabs verified.");
+            Debug.Log("DRIVING_SIM_VALIDATION_PASS: 15 cars, 3 missions, 5 upgrades, 2 scenes, 2 gas stations, URP, HUD, garage, and four-wheel prefabs verified.");
         }
 
         private static void Require(bool condition, string message)
@@ -148,11 +168,11 @@ namespace DrivingSim.Editor
             return data;
         }
 
-        private static MissionData CreateMission(string id, string display, string description, MissionType type, string target, float distance, float time, int reward, string unlock)
+        private static MissionData CreateMission(string id, string display, string description, MissionType type, MissionDifficulty difficulty, string target, float distance, float time, int reward, string unlock)
         {
             MissionData data = LoadOrCreate<MissionData>($"{DataPath}/Mission_{id}.asset");
             Set(data, "id", id); Set(data, "displayName", display); Set(data, "description", description); Set(data, "type", (int)type);
-            Set(data, "targetId", target); Set(data, "targetDistanceMetres", distance); Set(data, "timeLimitSeconds", time); Set(data, "rewardMoney", reward); Set(data, "unlockCarId", unlock);
+            Set(data, "difficulty", (int)difficulty); Set(data, "targetId", target); Set(data, "targetDistanceMetres", distance); Set(data, "timeLimitSeconds", time); Set(data, "rewardMoney", reward); Set(data, "unlockCarId", unlock);
             return data;
         }
 
@@ -334,7 +354,7 @@ namespace DrivingSim.Editor
             Text speed = CreateText(canvasGo.transform, "Speed", "000 km/h", new Vector2(0.5f, 0f), new Vector2(0f, 90f), 34, TextAnchor.MiddleCenter);
             Text gear = CreateText(canvasGo.transform, "Gear", "G1", new Vector2(0.5f, 0f), new Vector2(0f, 48f), 24, TextAnchor.MiddleCenter);
             Text fuel = CreateText(canvasGo.transform, "Fuel", "FUEL 48.0 / 48.0 L  100%", new Vector2(0.5f, 0f), new Vector2(-180f, 92f), 24, TextAnchor.MiddleCenter);
-            Text money = CreateText(canvasGo.transform, "Money", "$5,000", new Vector2(1f, 1f), new Vector2(-150f, -55f), 28, TextAnchor.MiddleRight);
+            Text money = CreateText(canvasGo.transform, "Money", "$1,000", new Vector2(1f, 1f), new Vector2(-150f, -55f), 28, TextAnchor.MiddleRight);
             money.rectTransform.pivot = Vector2.one;
             money.rectTransform.anchoredPosition = new Vector2(-28f, -24f);
             money.rectTransform.sizeDelta = new Vector2(260f, 56f);
@@ -374,9 +394,10 @@ namespace DrivingSim.Editor
             UnityEventTools.AddPersistentListener(nextMission.onClick, missionView.Next);
             UnityEventTools.AddPersistentListener(startMission.onClick, missionView.StartSelected);
 
-            GameObject mainMenu = CreateImage(canvasGo.transform, "MainMenu", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520f, 340f), new Color(0.02f, 0.03f, 0.05f, 0.94f)).gameObject;
+            GameObject mainMenu = CreateImage(canvasGo.transform, "MainMenu", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520f, 420f), new Color(0.02f, 0.03f, 0.05f, 0.94f)).gameObject;
             CreateText(mainMenu.transform, "Title", "MOBILE DRIVING", new Vector2(0.5f, 1f), new Vector2(0f, -80f), 38, TextAnchor.MiddleCenter);
-            Button playButton = CreateButton(mainMenu.transform, "Play", "DRIVE", new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(260f, 75f));
+            Button playButton = CreateButton(mainMenu.transform, "Play", "START", new Vector2(0.5f, 0.5f), new Vector2(0f, 25f), new Vector2(260f, 70f));
+            Button garageButton = CreateButton(mainMenu.transform, "Garage", "GARAGE", new Vector2(0.5f, 0.5f), new Vector2(0f, -65f), new Vector2(260f, 70f));
             GameObject pauseMenu = CreateImage(canvasGo.transform, "PauseMenu", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(420f, 260f), new Color(0.02f, 0.03f, 0.05f, 0.94f)).gameObject;
             pauseMenu.SetActive(false);
             CreateText(pauseMenu.transform, "Title", "PAUSED", new Vector2(0.5f, 1f), new Vector2(0f, -55f), 34, TextAnchor.MiddleCenter);
@@ -391,6 +412,7 @@ namespace DrivingSim.Editor
             menuSo.FindProperty("saveService").objectReferenceValue = saves;
             menuSo.ApplyModifiedPropertiesWithoutUndo();
             UnityEventTools.AddPersistentListener(playButton.onClick, menu.Play);
+            UnityEventTools.AddPersistentListener(garageButton.onClick, menu.OpenGarage);
             UnityEventTools.AddBoolPersistentListener(pauseButton.onClick, menu.SetPaused, true);
             UnityEventTools.AddBoolPersistentListener(resumeButton.onClick, menu.SetPaused, false);
 
@@ -427,6 +449,74 @@ namespace DrivingSim.Editor
             camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color(0.06f, 0.07f, 0.09f);
             GameObject lightGo = new GameObject("Key Light"); Light light = lightGo.AddComponent<Light>(); light.type = LightType.Directional; light.intensity = 1.5f; lightGo.transform.rotation = Quaternion.Euler(35f, -35f, 0f);
 
+            GameObject canvasGo = new GameObject("GarageUI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            Canvas canvas = canvasGo.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            CanvasScaler scaler = canvasGo.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1920f, 1080f);
+
+            Text heading = CreateText(canvasGo.transform, "Heading", "GARAGE", new Vector2(0.5f, 1f), new Vector2(0f, -55f), 40, TextAnchor.MiddleCenter);
+            heading.rectTransform.sizeDelta = new Vector2(500f, 70f);
+            Text money = CreateText(canvasGo.transform, "Money", "$1,000", new Vector2(1f, 1f), new Vector2(-30f, -28f), 28, TextAnchor.MiddleRight);
+            money.rectTransform.pivot = Vector2.one;
+            Text carName = CreateText(canvasGo.transform, "CarName", "CITY HATCH", new Vector2(0.5f, 0f), new Vector2(0f, 265f), 32, TextAnchor.MiddleCenter);
+            Text ownership = CreateText(canvasGo.transform, "Ownership", "SELECTED", new Vector2(0.5f, 0f), new Vector2(0f, 220f), 21, TextAnchor.MiddleCenter);
+            Text stats = CreateText(canvasGo.transform, "Stats", "Power\nGrip\nBrakes\nTank", new Vector2(0f, 0.5f), new Vector2(235f, 20f), 22, TextAnchor.MiddleLeft);
+            stats.rectTransform.sizeDelta = new Vector2(430f, 260f);
+            Text message = CreateText(canvasGo.transform, "Message", "", new Vector2(0.5f, 0f), new Vector2(0f, 55f), 20, TextAnchor.MiddleCenter);
+
+            Button previous = CreateButton(canvasGo.transform, "PreviousCar", "<", new Vector2(0f, 0.5f), new Vector2(75f, 0f), new Vector2(80f, 80f));
+            Button next = CreateButton(canvasGo.transform, "NextCar", ">", new Vector2(1f, 0.5f), new Vector2(-75f, 0f), new Vector2(80f, 80f));
+            Button buy = CreateButton(canvasGo.transform, "Buy", "BUY", new Vector2(0.5f, 0f), new Vector2(-125f, 135f), new Vector2(220f, 65f));
+            Button modify = CreateButton(canvasGo.transform, "Modify", "MODIFY", new Vector2(0.5f, 0f), new Vector2(125f, 135f), new Vector2(220f, 65f));
+            Button back = CreateButton(canvasGo.transform, "Back", "MAIN MENU", new Vector2(0f, 1f), new Vector2(110f, -55f), new Vector2(180f, 60f));
+
+            GameObject modifyPanel = CreateImage(canvasGo.transform, "ModifyPanel", new Vector2(1f, 0.5f), new Vector2(-310f, 0f), new Vector2(500f, 620f), new Color(0.02f, 0.03f, 0.05f, 0.94f)).gameObject;
+            CreateText(modifyPanel.transform, "Title", "MODIFY CAR", new Vector2(0.5f, 1f), new Vector2(0f, -45f), 28, TextAnchor.MiddleCenter);
+            float upgradeY = 205f;
+            foreach (UpgradeData upgrade in database.Upgrades)
+            {
+                Button upgradeButton = CreateButton(modifyPanel.transform, "Upgrade_" + upgrade.Id,
+                    $"{upgrade.DisplayName.ToUpperInvariant()}  ${upgrade.PriceForNextLevel(0):N0}", new Vector2(0.5f, 0.5f),
+                    new Vector2(0f, upgradeY), new Vector2(390f, 58f));
+                upgradeY -= 68f;
+                // Listener is connected after the GarageView component is created below.
+                upgradeButton.gameObject.name = "Upgrade_" + upgrade.Id;
+            }
+            CreateText(modifyPanel.transform, "PaintTitle", "PAINT", new Vector2(0.5f, 0.5f), new Vector2(0f, -165f), 20, TextAnchor.MiddleCenter);
+            Button redPaint = CreateButton(modifyPanel.transform, "RedPaint", "RED", new Vector2(0.5f, 0f), new Vector2(-130f, 55f), new Vector2(110f, 52f));
+            Button bluePaint = CreateButton(modifyPanel.transform, "BluePaint", "BLUE", new Vector2(0.5f, 0f), new Vector2(0f, 55f), new Vector2(110f, 52f));
+            Button whitePaint = CreateButton(modifyPanel.transform, "WhitePaint", "WHITE", new Vector2(0.5f, 0f), new Vector2(130f, 55f), new Vector2(110f, 52f));
+
+            GarageView view = canvasGo.AddComponent<GarageView>();
+            SerializedObject viewSo = new SerializedObject(view);
+            viewSo.FindProperty("garage").objectReferenceValue = garage;
+            viewSo.FindProperty("economy").objectReferenceValue = economy;
+            viewSo.FindProperty("carName").objectReferenceValue = carName;
+            viewSo.FindProperty("ownership").objectReferenceValue = ownership;
+            viewSo.FindProperty("stats").objectReferenceValue = stats;
+            viewSo.FindProperty("message").objectReferenceValue = message;
+            viewSo.FindProperty("money").objectReferenceValue = money;
+            viewSo.FindProperty("buyButtonLabel").objectReferenceValue = buy.GetComponentInChildren<Text>();
+            viewSo.FindProperty("modifyPanel").objectReferenceValue = modifyPanel;
+            viewSo.ApplyModifiedPropertiesWithoutUndo();
+
+            UnityEventTools.AddPersistentListener(previous.onClick, view.Previous);
+            UnityEventTools.AddPersistentListener(next.onClick, view.Next);
+            UnityEventTools.AddPersistentListener(buy.onClick, view.BuyOrSelect);
+            UnityEventTools.AddPersistentListener(modify.onClick, view.ToggleModifyPanel);
+            UnityEventTools.AddPersistentListener(back.onClick, view.BackToMainMenu);
+            UnityEventTools.AddPersistentListener(redPaint.onClick, view.SetPaintRed);
+            UnityEventTools.AddPersistentListener(bluePaint.onClick, view.SetPaintBlue);
+            UnityEventTools.AddPersistentListener(whitePaint.onClick, view.SetPaintWhite);
+            foreach (UpgradeData upgrade in database.Upgrades)
+            {
+                Button upgradeButton = modifyPanel.transform.Find("Upgrade_" + upgrade.Id).GetComponent<Button>();
+                UnityEventTools.AddObjectPersistentListener(upgradeButton.onClick, view.BuyUpgrade, upgrade);
+            }
+            modifyPanel.SetActive(false);
+
+            if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() == null)
+                new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+
             garage.Configure(database, saves, economy, preview);
             economy.Configure(saves);
             EditorSceneManager.SaveScene(scene, ScenePath + "/Garage.unity");
@@ -440,9 +530,34 @@ namespace DrivingSim.Editor
 
         private static void CreateGasStation(string name, Vector3 position, Material material)
         {
-            GameObject go = Primitive(name, null, PrimitiveType.Cube, position, new Vector3(8f, 3f, 8f), material, true);
-            Collider collider = go.GetComponent<Collider>(); collider.isTrigger = true;
-            go.AddComponent<GasStation>();
+            position.y = 0f;
+            GameObject root = new GameObject(name);
+            root.transform.position = position;
+
+            Primitive("Forecourt", root.transform, PrimitiveType.Cube, Vector3.zero,
+                new Vector3(11f, 0.2f, 11f), material, true);
+            Primitive("Shop", root.transform, PrimitiveType.Cube, new Vector3(0f, 1.6f, 4.15f),
+                new Vector3(8f, 3.2f, 2.5f), material, true);
+            Primitive("Canopy", root.transform, PrimitiveType.Cube, new Vector3(0f, 4.7f, -0.5f),
+                new Vector3(10f, 0.45f, 6.5f), material, false);
+            Primitive("Canopy Column Left", root.transform, PrimitiveType.Cube, new Vector3(-4.2f, 2.3f, -0.5f),
+                new Vector3(0.45f, 4.6f, 0.45f), material, true);
+            Primitive("Canopy Column Right", root.transform, PrimitiveType.Cube, new Vector3(4.2f, 2.3f, -0.5f),
+                new Vector3(0.45f, 4.6f, 0.45f), material, true);
+            Primitive("Fuel Pump 1", root.transform, PrimitiveType.Cube, new Vector3(-1.35f, 1.15f, 0f),
+                new Vector3(0.8f, 2.3f, 0.95f), material, true);
+            Primitive("Fuel Pump 2", root.transform, PrimitiveType.Cube, new Vector3(1.35f, 1.15f, 0f),
+                new Vector3(0.8f, 2.3f, 0.95f), material, true);
+
+            GameObject zone = new GameObject("Highlighted Refuel Zone");
+            zone.transform.SetParent(root.transform, false);
+            zone.transform.localPosition = new Vector3(0f, 0f, -2.45f);
+            BoxCollider zoneCollider = zone.AddComponent<BoxCollider>();
+            zoneCollider.isTrigger = true;
+            zoneCollider.center = new Vector3(0f, 1.25f, 0f);
+            zoneCollider.size = new Vector3(9f, 2.7f, 4.2f);
+            zone.AddComponent<GasStation>();
+            zone.AddComponent<GasStationZoneIndicator>();
         }
 
         private static GameObject Primitive(string name, Transform parent, PrimitiveType type, Vector3 localPosition, Vector3 scale, Material material, bool keepCollider)
@@ -480,30 +595,31 @@ namespace DrivingSim.Editor
 
         private static void CreateGearSelector(Transform parent, MobileInputState input)
         {
-            const string shifterPath = "Assets/DrivingSim/UI/Generated/AutomaticShifter.png";
-            Sprite artwork = AssetDatabase.LoadAssetAtPath<Sprite>(shifterPath);
-            Image panel = CreateImage(parent, "GearSelector", new Vector2(1f, 0f), new Vector2(-225f, 350f),
-                new Vector2(420f, 420f), Color.white);
-            panel.sprite = artwork;
-            panel.preserveAspect = true;
+            Image panel = CreateImage(parent, "GearSelector", new Vector2(1f, 0f), new Vector2(-150f, 280f),
+                new Vector2(220f, 300f), Color.clear);
             panel.raycastTarget = false;
             GearSelectorUI selector = panel.gameObject.AddComponent<GearSelectorUI>();
             SetObject(selector, "input", input);
 
             string[] gears = { "P", "R", "N", "D" };
             Image interaction = CreateImage(panel.transform, "InteractionArea", new Vector2(0.5f, 0.5f),
-                new Vector2(52f, -40f), new Vector2(78f, 178f), new Color(0f, 0f, 0f, 0f));
+                Vector2.zero, new Vector2(220f, 300f), new Color(0f, 0f, 0f, 0f));
             interaction.raycastTarget = true;
 
-            float[] yPositions = { 17f, -20f, -58f, -96f };
+            float[] yPositions = { 75f, 25f, -25f, -75f };
             for (int i = 0; i < gears.Length; i++)
             {
                 Image hitArea = CreateImage(panel.transform, gears[i], new Vector2(0.5f, 0.5f),
-                    new Vector2(52f, yPositions[i]), new Vector2(44f, 32f),
+                    new Vector2(55f, yPositions[i]), new Vector2(52f, 38f),
                     gears[i] == "D" ? new Color(1f, 0.28f, 0.02f, 0.5f) : new Color(0f, 0f, 0f, 0f));
                 Button button = hitArea.gameObject.AddComponent<Button>();
                 button.targetGraphic = hitArea;
                 button.transition = Selectable.Transition.None;
+                Text label = CreateText(hitArea.transform, "Label", gears[i], new Vector2(0.5f, 0.5f),
+                    Vector2.zero, 22, TextAnchor.MiddleCenter);
+                label.rectTransform.sizeDelta = new Vector2(52f, 38f);
+                label.color = gears[i] == "D" ? Color.black : Color.white;
+                label.raycastTarget = false;
             }
         }
 

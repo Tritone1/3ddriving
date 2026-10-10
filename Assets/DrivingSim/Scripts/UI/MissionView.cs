@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using DrivingSim.Missions;
 using UnityEngine;
@@ -14,8 +15,16 @@ namespace DrivingSim.UI
         [SerializeField] private Text result;
         private int index;
         private Coroutine hideResultRoutine;
+        private float nextCooldownRefresh;
 
         private void Start() => Refresh();
+
+        private void Update()
+        {
+            if (Time.unscaledTime < nextCooldownRefresh) return;
+            nextCooldownRefresh = Time.unscaledTime + 1f;
+            Refresh();
+        }
 
         private void OnEnable()
         {
@@ -23,6 +32,7 @@ namespace DrivingSim.UI
             {
                 manager.MissionSucceeded += HandleSuccess;
                 manager.MissionFailed += HandleFailure;
+                manager.MissionListChanged += Refresh;
             }
             Refresh();
         }
@@ -33,6 +43,7 @@ namespace DrivingSim.UI
             {
                 manager.MissionSucceeded -= HandleSuccess;
                 manager.MissionFailed -= HandleFailure;
+                manager.MissionListChanged -= Refresh;
             }
         }
 
@@ -41,8 +52,23 @@ namespace DrivingSim.UI
         public void StartSelected()
         {
             if (manager == null || manager.Missions.Count == 0) return;
-            manager.StartMission(manager.Missions[index]);
-            HideResultImmediately();
+            MissionData mission = manager.Missions[index];
+            TimeSpan remaining = manager.GetCooldownRemaining(mission);
+            if (remaining > TimeSpan.Zero)
+            {
+                ShowResult($"MISSION LOCKED\n{FormatCooldown(remaining)}\nWATCH AD TO UNLOCK EARLY");
+                return;
+            }
+            if (manager.StartMission(mission)) HideResultImmediately();
+        }
+
+        // Wire the rewarded-ad success callback to this method when the ad SDK is added.
+        public void UnlockSelectedMissionAfterRewardedAd()
+        {
+            if (manager == null || manager.Missions.Count == 0) return;
+            if (!manager.UnlockMissionCooldownAfterRewardedAd(manager.Missions[index])) return;
+            ShowResult("MISSION UNLOCKED");
+            Refresh();
         }
         public void DismissResult()
         {
@@ -57,12 +83,18 @@ namespace DrivingSim.UI
             MissionData mission = manager.Missions[index];
             if (title != null) title.text = mission.DisplayName;
             if (description != null) description.text = mission.Description;
-            if (reward != null) reward.text = $"Reward: ${mission.RewardMoney:N0}";
+            if (reward != null)
+            {
+                TimeSpan remaining = manager.GetCooldownRemaining(mission);
+                reward.text = remaining > TimeSpan.Zero
+                    ? $"{mission.Difficulty.ToString().ToUpperInvariant()}  |  LOCKED {FormatCooldown(remaining)}\nWATCH AD TO UNLOCK EARLY"
+                    : $"{mission.Difficulty.ToString().ToUpperInvariant()}  |  Reward: ${mission.RewardMoney:N0}";
+            }
         }
 
         private void HandleSuccess(MissionData mission)
         {
-            ShowResult($"SUCCESS\n+${mission.RewardMoney:N0}\nNEXT MISSION READY");
+            ShowResult($"SUCCESS\n+${mission.RewardMoney:N0}\nMISSION LOCKED FOR 10 MIN");
 
             // Move the mission board to the item after the mission that just finished.
             // ClearResult returns the manager to Idle so its Start button can launch it.
@@ -80,8 +112,29 @@ namespace DrivingSim.UI
 
                 index = (completedIndex + 1) % manager.Missions.Count;
                 manager.ClearResult();
+                manager.GenerateMissionBoard();
+                SelectNextUnlockedMission();
                 Refresh();
             }
+        }
+
+        private void SelectNextUnlockedMission()
+        {
+            if (manager == null || manager.Missions.Count == 0) return;
+            index = (index % manager.Missions.Count + manager.Missions.Count) % manager.Missions.Count;
+            for (int offset = 0; offset < manager.Missions.Count; offset++)
+            {
+                int candidate = (index + offset) % manager.Missions.Count;
+                if (manager.IsMissionLocked(manager.Missions[candidate])) continue;
+                index = candidate;
+                return;
+            }
+        }
+
+        private static string FormatCooldown(TimeSpan remaining)
+        {
+            int totalSeconds = Mathf.Max(0, Mathf.CeilToInt((float)remaining.TotalSeconds));
+            return $"{totalSeconds / 60:00}:{totalSeconds % 60:00}";
         }
         private void HandleFailure(MissionData mission, string reason) => ShowResult($"FAILED\n{reason}");
         private void ShowResult(string message)

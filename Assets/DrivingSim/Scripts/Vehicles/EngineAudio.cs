@@ -23,9 +23,15 @@ namespace DrivingSim.Vehicles
         private void Update()
         {
             if (car == null || car.Data == null) return;
+            if (!car.IsEngineRunning)
+            {
+                source.volume = Mathf.MoveTowards(source.volume, 0f, Time.unscaledDeltaTime * 3f);
+                return;
+            }
             float rpm = Mathf.InverseLerp(car.Data.IdleRpm, car.Data.MaxRpm, car.EngineRpm);
             source.pitch = Mathf.Lerp(idlePitch, maximumPitch, rpm);
-            source.volume = Mathf.Clamp01(0.55f + Mathf.Abs(car.ThrottleInput) * throttleVolumeBoost);
+            float targetVolume = Mathf.Clamp01(0.55f + Mathf.Abs(car.ThrottleInput) * throttleVolumeBoost);
+            source.volume = Mathf.MoveTowards(source.volume, targetVolume, Time.unscaledDeltaTime * 3f);
         }
 
         public void Configure(CarController controller) => car = controller;

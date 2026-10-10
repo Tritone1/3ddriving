@@ -69,7 +69,8 @@ namespace DrivingSim.Core
             drivingCamera?.SetTarget(instance.transform, rig != null ? rig.ChaseCameraAnchor : null, rig != null ? rig.HoodCameraAnchor : null);
             missionManager?.Configure(database.Missions, playerCar, economy, saveService);
             hud?.Configure(playerCar, fuel, economy, missionManager, mobileInput, UnityEngine.Camera.main);
-            foreach (GasStation station in FindObjectsByType<GasStation>(FindObjectsSortMode.None)) station.Configure(economy, mobileInput);
+            foreach (GasStation station in FindObjectsByType<GasStation>(FindObjectsSortMode.None))
+                station.Configure(economy, mobileInput, saveService, fuel);
         }
 
         private void Update()

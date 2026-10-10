@@ -19,6 +19,7 @@ MonoBehaviour:
   targetId: delivery
   targetDistanceMetres: 0
   timeLimitSeconds: 75
-  rewardMoney: 2600
+  difficulty: 1
+  rewardMoney: 1250
   unlockCarId: utility-suv
   completionRadius: 8

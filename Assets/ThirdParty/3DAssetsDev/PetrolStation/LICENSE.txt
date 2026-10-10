@@ -1,0 +1,14 @@
+Petrol Station and Forecourt Shop
+
+Source: https://3dassets.dev/packs/petrol-station-and-forecourt-shop
+Creator: 3D Assets (https://3dassets.dev/u/3dassets)
+License: CC0 1.0 Universal
+License URL: https://creativecommons.org/publicdomain/zero/1.0/
+
+Included models:
+- Fuel pump, two hose (asset 33940)
+- Pump island kerb (asset 33939)
+- Forecourt canopy section (asset 33943)
+- Canopy column (asset 33944)
+
+The source pack identifies these models as AI-generated with Claude Opus 5.

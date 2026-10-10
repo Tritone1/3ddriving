@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: sport-coupe
   displayName: Sport Coupe
-  price: 14500
+  price: 6500
   unlockMissionId: 
   prefab: {fileID: 4564068069327545584, guid: c08724cd7d021924f9952ef55e7f56ba, type: 3}
   mass: 1390

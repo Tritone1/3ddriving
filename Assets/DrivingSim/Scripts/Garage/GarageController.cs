@@ -2,6 +2,7 @@ using System;
 using DrivingSim.Core;
 using DrivingSim.Economy;
 using DrivingSim.Save;
+using DrivingSim.UI;
 using DrivingSim.Vehicles;
 using UnityEngine;
 
@@ -32,6 +33,8 @@ namespace DrivingSim.Garage
                 if (database.Cars[i] != null && database.Cars[i].Id == saveService.Profile.selectedCarId) selected = i;
             index = Mathf.Max(0, selected);
             RefreshPreview();
+            if (FindFirstObjectByType<GarageView>() == null)
+                GarageView.CreateRuntime(this, economy, database.Upgrades);
         }
 
         public void Configure(GameDatabase data, SaveService saves, EconomyService currency, Transform root)
@@ -70,6 +73,7 @@ namespace DrivingSim.Garage
             }
             saveService.Profile.ownedCarIds.Add(car.Id);
             saveService.Profile.GetOrCreateCar(car.Id, car.FuelCapacityLitres);
+            saveService.Profile.selectedCarId = car.Id;
             saveService.Save();
             TransactionSucceeded?.Invoke();
             SelectionChanged?.Invoke();
@@ -102,6 +106,7 @@ namespace DrivingSim.Garage
                 return false;
             }
             saveService.Profile.SetUpgradeLevel(CurrentCar.Id, upgrade.Id, level + 1);
+            saveService.Profile.selectedCarId = CurrentCar.Id;
             saveService.Save();
             TransactionSucceeded?.Invoke();
             SelectionChanged?.Invoke();
@@ -111,6 +116,7 @@ namespace DrivingSim.Garage
         public void SetPaint(Color color)
         {
             if (CurrentCar == null || !IsOwned) return;
+            saveService.Profile.selectedCarId = CurrentCar.Id;
             saveService.Profile.GetOrCreateCar(CurrentCar.Id, CurrentCar.FuelCapacityLitres).paintColor = color;
             ApplyPreviewPaint(color);
             saveService.Save();
@@ -138,6 +144,7 @@ namespace DrivingSim.Garage
             if (previewInstance == null) return;
             MaterialPropertyBlock block = new MaterialPropertyBlock();
             block.SetColor("_BaseColor", color);
+            block.SetColor("_Color", color);
             foreach (Renderer renderer in previewInstance.GetComponentsInChildren<Renderer>()) renderer.SetPropertyBlock(block);
         }
     }

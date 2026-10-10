@@ -19,6 +19,7 @@ MonoBehaviour:
   targetId: checkpoint-a
   targetDistanceMetres: 0
   timeLimitSeconds: 0
-  rewardMoney: 1200
+  difficulty: 0
+  rewardMoney: 750
   unlockCarId: 
   completionRadius: 8

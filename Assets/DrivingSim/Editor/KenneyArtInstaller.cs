@@ -1,5 +1,7 @@
 #if UNITY_EDITOR
 using System;
+using DrivingSim.Core;
+using DrivingSim.Vehicles;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -12,12 +14,76 @@ namespace DrivingSim.EditorTools
     /// replacing their Rigidbody, WheelCollider, input, fuel, or mission components.
     /// The operation is idempotent and can be repeated from the Driving Sim menu.
     /// </summary>
+    [InitializeOnLoad]
     public static class KenneyArtInstaller
     {
-        private const string InstallKey = "DrivingSim.KenneyArtInstaller.v1";
+        private const string InstallKey = "DrivingSim.KenneyArtInstaller.v2";
         private const string CarFolder = "Assets/ThirdParty/Kenney/CarKit/FBX/";
         private const string RoadFolder = "Assets/ThirdParty/Kenney/CityKitRoads/FBX/";
         private const string DemoScenePath = "Assets/DrivingSim/Scenes/Demo.unity";
+        private const string DatabasePath = "Assets/DrivingSim/ScriptableObjects/GameDatabase.asset";
+        private const string DataFolder = "Assets/DrivingSim/ScriptableObjects/";
+        private const string PrefabFolder = "Assets/DrivingSim/Prefabs/";
+
+        private readonly struct VehicleDefinition
+        {
+            public readonly string Id;
+            public readonly string DisplayName;
+            public readonly string ModelName;
+            public readonly int Price;
+            public readonly string UnlockMissionId;
+            public readonly float Mass;
+            public readonly float Torque;
+            public readonly float Brakes;
+            public readonly float TopSpeed;
+            public readonly float Grip;
+            public readonly float Tank;
+            public readonly float Consumption;
+            public readonly Vector3 Size;
+
+            public VehicleDefinition(string id, string displayName, string modelName, int price,
+                string unlockMissionId, float mass, float torque, float brakes, float topSpeed,
+                float grip, float tank, float consumption, Vector3 size)
+            {
+                Id = id;
+                DisplayName = displayName;
+                ModelName = modelName;
+                Price = price;
+                UnlockMissionId = unlockMissionId;
+                Mass = mass;
+                Torque = torque;
+                Brakes = brakes;
+                TopSpeed = topSpeed;
+                Grip = grip;
+                Tank = tank;
+                Consumption = consumption;
+                Size = size;
+            }
+        }
+
+        private static readonly VehicleDefinition[] Vehicles =
+        {
+            new VehicleDefinition("city-hatch", "City Hatch", "hatchback-sports.fbx", 0, "", 1220f, 1250f, 3000f, 175f, 1.05f, 48f, 7.5f, new Vector3(1.82f, 1.45f, 3.9f)),
+            new VehicleDefinition("family-sedan", "Family Sedan", "sedan.fbx", 3500, "", 1370f, 1380f, 3200f, 185f, 1.04f, 52f, 8.2f, new Vector3(1.86f, 1.45f, 4.3f)),
+            new VehicleDefinition("city-taxi", "City Taxi", "taxi.fbx", 4500, "", 1400f, 1420f, 3300f, 180f, 1.03f, 55f, 8.8f, new Vector3(1.88f, 1.48f, 4.35f)),
+            new VehicleDefinition("sport-coupe", "Sport Coupe", "sedan-sports.fbx", 6500, "", 1390f, 1750f, 3800f, 225f, 1.18f, 58f, 10.5f, new Vector3(1.88f, 1.35f, 4.15f)),
+            new VehicleDefinition("urban-suv", "Urban SUV", "suv.fbx", 8500, "", 1680f, 1800f, 4000f, 190f, 1.1f, 68f, 11.5f, new Vector3(1.94f, 1.62f, 4.35f)),
+            new VehicleDefinition("utility-suv", "Utility SUV", "suv-luxury.fbx", 0, "timed-delivery", 1780f, 1900f, 4200f, 195f, 1.12f, 72f, 12f, new Vector3(1.96f, 1.65f, 4.45f)),
+            new VehicleDefinition("cargo-van", "Cargo Van", "van.fbx", 7000, "", 1850f, 1750f, 4100f, 170f, 1.02f, 74f, 12.8f, new Vector3(1.98f, 1.9f, 4.6f)),
+            new VehicleDefinition("pickup-truck", "Pickup Truck", "truck.fbx", 9000, "", 1950f, 2050f, 4300f, 180f, 1.08f, 78f, 13.5f, new Vector3(2.02f, 1.78f, 4.7f)),
+            new VehicleDefinition("delivery-van", "Delivery Van", "delivery.fbx", 10000, "", 2250f, 2150f, 4500f, 165f, 1f, 86f, 14f, new Vector3(2.08f, 2.2f, 5.1f)),
+            new VehicleDefinition("flatbed-truck", "Flatbed Truck", "truck-flat.fbx", 11000, "", 2300f, 2250f, 4700f, 165f, 1.03f, 90f, 15f, new Vector3(2.08f, 1.95f, 5.1f)),
+            new VehicleDefinition("police-cruiser", "Police Cruiser", "police.fbx", 12000, "", 1500f, 1950f, 4100f, 230f, 1.2f, 62f, 11f, new Vector3(1.9f, 1.5f, 4.35f)),
+            new VehicleDefinition("ambulance", "Ambulance", "ambulance.fbx", 16000, "", 2600f, 2350f, 5000f, 170f, 1.06f, 96f, 16f, new Vector3(2.1f, 2.35f, 5.2f)),
+            new VehicleDefinition("track-racer", "Track Racer", "race.fbx", 18000, "", 1180f, 2450f, 4800f, 275f, 1.32f, 56f, 13f, new Vector3(1.92f, 1.18f, 4.25f)),
+            new VehicleDefinition("fire-truck", "Fire Truck", "firetruck.fbx", 22000, "", 4200f, 3200f, 6200f, 145f, 0.98f, 120f, 22f, new Vector3(2.35f, 2.7f, 6.2f)),
+            new VehicleDefinition("future-racer", "Future Racer", "race-future.fbx", 25000, "", 1120f, 2850f, 5200f, 310f, 1.38f, 54f, 15f, new Vector3(1.96f, 1.12f, 4.35f))
+        };
+
+        static KenneyArtInstaller()
+        {
+            EditorApplication.delayCall += TryAutomaticInstall;
+        }
 
         [MenuItem("Driving Sim/Apply Kenney Art", priority = 30)]
         public static void ApplyKenneyArt()
@@ -28,17 +94,21 @@ namespace DrivingSim.EditorTools
                 return;
             }
 
-            GameObject hatch = LoadModel(CarFolder + "hatchback-sports.fbx");
-            GameObject sport = LoadModel(CarFolder + "sedan-sports.fbx");
-            GameObject suv = LoadModel(CarFolder + "suv-luxury.fbx");
             GameObject roadStraight = LoadModel(RoadFolder + "road-straight.fbx");
             GameObject roadCrossroad = LoadModel(RoadFolder + "road-crossroad.fbx");
 
-            if (hatch == null || sport == null || suv == null || roadStraight == null || roadCrossroad == null)
+            if (roadStraight == null || roadCrossroad == null)
             {
                 Debug.LogError("Kenney art installation stopped because one or more imported FBX models are missing.");
                 return;
             }
+
+            foreach (VehicleDefinition vehicle in Vehicles)
+                if (LoadModel(CarFolder + vehicle.ModelName) == null)
+                {
+                    Debug.LogError("Missing free vehicle model: " + vehicle.ModelName);
+                    return;
+                }
 
             Material carMaterial = CreatePaletteMaterial(
                 "Assets/DrivingSim/Materials/KenneyCars.mat",
@@ -47,15 +117,116 @@ namespace DrivingSim.EditorTools
                 "Assets/DrivingSim/Materials/KenneyRoads.mat",
                 RoadFolder + "Textures/colormap.png");
 
-            UpgradeCarPrefab("Assets/DrivingSim/Prefabs/Car_city-hatch.prefab", hatch, carMaterial, new Vector3(1.82f, 1.45f, 3.9f));
-            UpgradeCarPrefab("Assets/DrivingSim/Prefabs/Car_sport-coupe.prefab", sport, carMaterial, new Vector3(1.88f, 1.35f, 4.15f));
-            UpgradeCarPrefab("Assets/DrivingSim/Prefabs/Car_utility-suv.prefab", suv, carMaterial, new Vector3(1.92f, 1.62f, 4.25f));
+            CarData[] cars = EnsureVehicleCatalog();
+            for (int i = 0; i < Vehicles.Length; i++)
+                UpgradeCarPrefab(PrefabFolder + "Car_" + Vehicles[i].Id + ".prefab",
+                    LoadModel(CarFolder + Vehicles[i].ModelName), carMaterial, Vehicles[i].Size);
+            AssignDatabaseCars(cars);
             UpgradeDemoScene(roadStraight, roadCrossroad, roadMaterial);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             EditorPrefs.SetBool(InstallKey, true);
-            Debug.Log("DRIVING_SIM_KENNEY_ART_APPLIED: Three vehicle prefabs and the Demo road network now use Kenney CC0 art.");
+            Debug.Log("DRIVING_SIM_KENNEY_ART_APPLIED: 15 CC0 vehicle prefabs and the Demo road network now use Kenney art.");
+        }
+
+        private static void TryAutomaticInstall()
+        {
+            if (EditorPrefs.GetBool(InstallKey, false)) return;
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating)
+            {
+                EditorApplication.delayCall += TryAutomaticInstall;
+                return;
+            }
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                EditorApplication.playModeStateChanged -= OnPlayModeChanged;
+                EditorApplication.playModeStateChanged += OnPlayModeChanged;
+                return;
+            }
+            ApplyKenneyArt();
+        }
+
+        private static void OnPlayModeChanged(PlayModeStateChange state)
+        {
+            if (state != PlayModeStateChange.EnteredEditMode) return;
+            EditorApplication.playModeStateChanged -= OnPlayModeChanged;
+            EditorApplication.delayCall += TryAutomaticInstall;
+        }
+
+        private static CarData[] EnsureVehicleCatalog()
+        {
+            var cars = new CarData[Vehicles.Length];
+            const string templatePrefab = PrefabFolder + "Car_city-hatch.prefab";
+
+            for (int i = 0; i < Vehicles.Length; i++)
+            {
+                VehicleDefinition definition = Vehicles[i];
+                string dataPath = DataFolder + "Car_" + definition.Id + ".asset";
+                string prefabPath = PrefabFolder + "Car_" + definition.Id + ".prefab";
+                CarData data = AssetDatabase.LoadAssetAtPath<CarData>(dataPath);
+                if (data == null)
+                {
+                    data = ScriptableObject.CreateInstance<CarData>();
+                    AssetDatabase.CreateAsset(data, dataPath);
+                }
+
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) == null)
+                {
+                    if (!AssetDatabase.CopyAsset(templatePrefab, prefabPath))
+                        throw new InvalidOperationException("Could not create vehicle prefab " + prefabPath);
+                    AssetDatabase.ImportAsset(prefabPath, ImportAssetOptions.ForceUpdate);
+                }
+
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                SerializedObject dataSo = new SerializedObject(data);
+                dataSo.FindProperty("id").stringValue = definition.Id;
+                dataSo.FindProperty("displayName").stringValue = definition.DisplayName;
+                dataSo.FindProperty("price").intValue = definition.Price;
+                dataSo.FindProperty("unlockMissionId").stringValue = definition.UnlockMissionId;
+                dataSo.FindProperty("mass").floatValue = definition.Mass;
+                dataSo.FindProperty("maxMotorTorque").floatValue = definition.Torque;
+                dataSo.FindProperty("maxBrakeTorque").floatValue = definition.Brakes;
+                dataSo.FindProperty("topSpeedKph").floatValue = definition.TopSpeed;
+                dataSo.FindProperty("tireGrip").floatValue = definition.Grip;
+                dataSo.FindProperty("fuelCapacityLitres").floatValue = definition.Tank;
+                dataSo.FindProperty("consumptionLitresPer100Km").floatValue = definition.Consumption;
+                dataSo.FindProperty("prefab").objectReferenceValue = prefab;
+                dataSo.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(data);
+
+                GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
+                try
+                {
+                    CarController controller = root.GetComponent<CarController>();
+                    if (controller != null)
+                    {
+                        SerializedObject controllerSo = new SerializedObject(controller);
+                        controllerSo.FindProperty("carData").objectReferenceValue = data;
+                        controllerSo.ApplyModifiedPropertiesWithoutUndo();
+                    }
+                    root.name = definition.DisplayName;
+                    PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(root);
+                }
+                cars[i] = data;
+            }
+            return cars;
+        }
+
+        private static void AssignDatabaseCars(CarData[] cars)
+        {
+            GameDatabase database = AssetDatabase.LoadAssetAtPath<GameDatabase>(DatabasePath);
+            if (database == null) throw new InvalidOperationException("GameDatabase asset is missing.");
+            SerializedObject databaseSo = new SerializedObject(database);
+            SerializedProperty list = databaseSo.FindProperty("cars");
+            list.arraySize = cars.Length;
+            for (int i = 0; i < cars.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = cars[i];
+            databaseSo.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(database);
         }
 
         private static GameObject LoadModel(string path)
@@ -99,6 +270,9 @@ namespace DrivingSim.EditorTools
                 DisableRenderer(root.transform.Find("Wheel_RL"));
                 DisableRenderer(root.transform.Find("Wheel_RR"));
 
+                Transform realisticVisual = root.transform.Find("RealisticVisual");
+                if (realisticVisual != null) UnityEngine.Object.DestroyImmediate(realisticVisual.gameObject);
+
                 Transform oldVisual = root.transform.Find("KenneyVisual");
                 if (oldVisual != null) UnityEngine.Object.DestroyImmediate(oldVisual.gameObject);
 
@@ -110,6 +284,25 @@ namespace DrivingSim.EditorTools
                 RemoveColliders(visual);
                 AssignMaterial(visual, material);
                 FitCarVisual(root.transform, visual.transform, targetSize);
+
+                CarRigReferences rig = root.GetComponent<CarRigReferences>();
+                if (rig != null)
+                {
+                    Renderer[] renderers = visual.GetComponentsInChildren<Renderer>(true);
+                    SerializedObject rigSo = new SerializedObject(rig);
+                    SerializedProperty paintRenderers = rigSo.FindProperty("paintRenderers");
+                    paintRenderers.arraySize = renderers.Length;
+                    for (int i = 0; i < renderers.Length; i++)
+                        paintRenderers.GetArrayElementAtIndex(i).objectReferenceValue = renderers[i];
+                    rigSo.ApplyModifiedPropertiesWithoutUndo();
+                }
+
+                BoxCollider bodyCollider = root.GetComponent<BoxCollider>();
+                if (bodyCollider != null)
+                {
+                    bodyCollider.center = new Vector3(0f, targetSize.y * 0.48f, 0f);
+                    bodyCollider.size = new Vector3(targetSize.x * 0.94f, targetSize.y * 0.82f, targetSize.z * 0.94f);
+                }
 
                 PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
             }

@@ -32,6 +32,7 @@ namespace DrivingSim.UI
         public float Brake { get; private set; }
         public bool Handbrake => handbrakePressed || selectedGear == TransmissionGear.Park;
         public bool Refuel { get; private set; }
+        public uint RefuelRequestVersion { get; private set; }
         public SteeringMode Mode => mode;
         public TransmissionGear SelectedGear => selectedGear;
         public float GearDirection => selectedGear == TransmissionGear.Drive ? 1f
@@ -58,6 +59,10 @@ namespace DrivingSim.UI
 
         public void SetBrake(bool pressed) => Brake = pressed ? 1f : 0f;
         public void SetHandbrake(bool pressed) => handbrakePressed = pressed;
-        public void SetRefuel(bool pressed) => Refuel = pressed;
+        public void SetRefuel(bool pressed)
+        {
+            if (pressed && !Refuel) RefuelRequestVersion++;
+            Refuel = pressed;
+        }
     }
 }

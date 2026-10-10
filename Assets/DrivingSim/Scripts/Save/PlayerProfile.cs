@@ -7,16 +7,42 @@ namespace DrivingSim.Save
     [Serializable]
     public sealed class PlayerProfile
     {
-        public int version = 1;
-        public int money = 5000;
+        public int version = 3;
+        public int money = 1000;
         public string selectedCarId = "city-hatch";
         public List<string> ownedCarIds = new List<string> { "city-hatch" };
         public List<string> completedMissionIds = new List<string>();
+        public List<MissionCooldownRecord> missionCooldowns = new List<MissionCooldownRecord>();
         public List<CarProgressRecord> cars = new List<CarProgressRecord>();
         public SettingsRecord settings = new SettingsRecord();
 
         public bool OwnsCar(string carId) => ownedCarIds.Contains(carId);
         public bool HasCompleted(string missionId) => completedMissionIds.Contains(missionId);
+
+        public long GetMissionCooldownEnd(string key)
+        {
+            MissionCooldownRecord record = missionCooldowns?.Find(item => item != null && item.key == key);
+            return record?.unlockAtUnixSeconds ?? 0L;
+        }
+
+        public void SetMissionCooldown(string key, long unlockAtUnixSeconds)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            missionCooldowns ??= new List<MissionCooldownRecord>();
+            MissionCooldownRecord record = missionCooldowns.Find(item => item != null && item.key == key);
+            if (record == null)
+            {
+                record = new MissionCooldownRecord { key = key };
+                missionCooldowns.Add(record);
+            }
+            record.unlockAtUnixSeconds = unlockAtUnixSeconds;
+        }
+
+        public void ClearMissionCooldown(string key)
+        {
+            if (string.IsNullOrEmpty(key) || missionCooldowns == null) return;
+            missionCooldowns.RemoveAll(item => item == null || item.key == key);
+        }
 
         public CarProgressRecord GetOrCreateCar(string carId, float defaultFuel)
         {
@@ -50,13 +76,24 @@ namespace DrivingSim.Save
         {
             ownedCarIds ??= new List<string>();
             completedMissionIds ??= new List<string>();
+            missionCooldowns ??= new List<MissionCooldownRecord>();
             cars ??= new List<CarProgressRecord>();
             settings ??= new SettingsRecord();
+            version = Mathf.Max(version, 3);
             money = Mathf.Max(0, money);
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            missionCooldowns.RemoveAll(item => item == null || string.IsNullOrEmpty(item.key) || item.unlockAtUnixSeconds <= now);
             if (ownedCarIds.Count == 0) ownedCarIds.Add("city-hatch");
             if (string.IsNullOrEmpty(selectedCarId) || !ownedCarIds.Contains(selectedCarId)) selectedCarId = ownedCarIds[0];
             foreach (CarProgressRecord car in cars) car.Sanitize();
         }
+    }
+
+    [Serializable]
+    public sealed class MissionCooldownRecord
+    {
+        public string key;
+        public long unlockAtUnixSeconds;
     }
 
     [Serializable]

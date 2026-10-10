@@ -40,7 +40,7 @@ namespace DrivingSim.Fuel
 
         private void Update()
         {
-            if (car == null || car.Data == null || IsEmpty)
+            if (car == null || car.Data == null || IsEmpty || !car.IsEngineRunning)
             {
                 previousPosition = transform.position;
                 return;

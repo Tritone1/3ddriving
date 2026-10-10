@@ -14,8 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cars:
   - {fileID: 11400000, guid: 2d81a6f5a6e1a0144bdd830380c8c090, type: 2}
+  - {fileID: 11400000, guid: 6c55276339dccd34cb2005f3a1a7c716, type: 2}
+  - {fileID: 11400000, guid: 626123f7adc59af44b3004397d93e099, type: 2}
   - {fileID: 11400000, guid: 0e639ff9f2e037740bd836f8bba8f04c, type: 2}
+  - {fileID: 11400000, guid: 99b6c6065a765d14aab9413b475c50bc, type: 2}
   - {fileID: 11400000, guid: f1da5a62119befe4e8e923a45caaea6c, type: 2}
+  - {fileID: 11400000, guid: 7a800877ef784b74494c74082f92f3d6, type: 2}
+  - {fileID: 11400000, guid: 6dcdc44ca9024014dbd7dc8c3336356e, type: 2}
+  - {fileID: 11400000, guid: d7e807a7a95e83d4a9125330b9a5d739, type: 2}
+  - {fileID: 11400000, guid: ac7f07828ec607d41b3b738e8a871a3d, type: 2}
+  - {fileID: 11400000, guid: da04ae969b097234d8d847af5886196f, type: 2}
+  - {fileID: 11400000, guid: c146a94dfdfbb20418697aaf35c8805e, type: 2}
+  - {fileID: 11400000, guid: 5f9513de4f1b22845b29e462d42539f7, type: 2}
+  - {fileID: 11400000, guid: b8386f79aa9a878458d1ca3712de32fe, type: 2}
+  - {fileID: 11400000, guid: c1a1581b02830b745a238998715a6e72, type: 2}
   missions:
   - {fileID: 11400000, guid: 08c98c16003e65a4ba133595ad1ba1e6, type: 2}
   - {fileID: 11400000, guid: 3316fce3d5ef6c4419f1c157a41ffb0b, type: 2}
